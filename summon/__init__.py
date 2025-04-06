@@ -4,7 +4,7 @@ from flask import Flask, render_template
 from .models import db
 
 # Initialise Flask for summon
-app = Flask(__name__)
+app = Flask(__name__, instance_relative_config = True)
 # Configure Flask from the config.py in this directory
 app.config.from_pyfile('config.py')
 # Now initialise the database engine
