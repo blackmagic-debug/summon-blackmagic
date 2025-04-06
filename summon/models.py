@@ -1,11 +1,17 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import ForeignKey, types
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, registry
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, registry, relationship
 from pathlib import Path
 from typing import NewType
 
 from .types import Probe
+
+__all__ = (
+	'db',
+	'Release',
+	'FirmwareDownload'
+)
 
 # Define types for mapping things in and out of the database cleanly
 i32 = NewType("i32", int)
@@ -30,6 +36,11 @@ class Release(db.Model):
 	id: Mapped[i32] = mapped_column(primary_key = True)
 	version: Mapped[str]
 
+	firmwareDownloads: Mapped[list['FirmwareDownload']] = relationship(back_populates = 'release')
+
+	def __init__(self, version: str):
+		self.version = version
+
 # Downloads for firmware available by probe platform
 class FirmwareDownload(db.Model):
 	id: Mapped[i64] = mapped_column(primary_key = True)
@@ -41,3 +52,5 @@ class FirmwareDownload(db.Model):
 	# If there are multiple firmware downloads for one probe in one release, this
 	# provides a name to which variant this download is for
 	variantName: Mapped[str]
+
+	release: Mapped[Release] = relationship(back_populates = 'firmwareDownloads')
