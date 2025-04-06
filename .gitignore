@@ -2,4 +2,5 @@
 /.env/
 __pycache__/
 /summon/config.py
-/instance/
+/instance/*
+!/instance/.keep
