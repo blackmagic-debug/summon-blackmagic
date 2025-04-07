@@ -3,6 +3,7 @@ from enum import IntEnum, unique
 
 __all__ = (
 	'Probe',
+	'variantFriendlyName'
 )
 
 # Enumeration of the available valid probe platforms
@@ -24,6 +25,7 @@ class Probe(IntEnum):
 	stlinkv3 = 13
 	swlink = 14
 
+	# Construct a Probe from a string name for the probe
 	@staticmethod
 	def fromString(name: str) -> 'Probe':
 		match name:
@@ -59,3 +61,18 @@ class Probe(IntEnum):
 				return Probe.swlink
 			case _:
 				raise ValueError(f'Invalid probe name {name}')
+
+# Translate a firmware variant to its friendly name
+def variantFriendlyName(variant: str) -> str:
+	match variant:
+		case 'common':
+			return 'common targets'
+		case 'riscv':
+			return 'RISC-V targets'
+		case 'st-clones':
+			return 'ST and ST-clones targets'
+		case 'uncommon':
+			return 'uncommon targets'
+		# If we don't have a specific translation for this, just use the variant name itself
+		case _:
+			return variant
