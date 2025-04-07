@@ -67,3 +67,6 @@ class FirmwareDownload(db.Model):
 	variantName: Mapped[str]
 
 	probe: Mapped[ReleaseProbe] = relationship(back_populates = 'variants')
+
+	def __init__(self, probe: ReleaseProbe):
+		self.probe = probe

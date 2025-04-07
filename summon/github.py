@@ -1,10 +1,12 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import sql
+from pathlib import Path
 import requests
 
-from .models import Release, ReleaseProbe
+from .models import Release, ReleaseProbe, FirmwareDownload
 from .githubTypes import GitHubRelease, GitHubAsset
+from .types import Probe, variantFriendlyName
 
 # Represents our bindings to the GitHub API as much as we care to have
 class GitHubAPI:
@@ -95,7 +97,20 @@ class GitHubAPI:
 
 		# With the probe and variant established, try to find the probe in the
 		# database for the release (and add it if it's not)
-		probe = self.findProbe(db, release, probe)
+		releaseProbe = self.findProbe(db, release, probe)
+
+		# Now build a description of this firwmare download for that probe
+		firmwareDownload = FirmwareDownload(releaseProbe)
+		firmwareDownload.uri = asset['browser_download_url']
+		firmwareDownload.variantName = variant
+		# Build a new file name that we can guarantee to be unique on the user's system
+		firmwareDownload.fileName = Path(f'blackmagic-{probe}-{variant}-{release.version}.elf')
+		# Build a friendly name for this download
+		probeFriendlyName = 'BMP' if releaseProbe.probe == Probe.native else probe
+		firmwareDownload.friendlyName = f'Black Magic Debug for {probeFriendlyName} ({variantFriendlyName(variant)})'
+
+		# Finally, add it to the database now we're done defining it
+		db.session.add(firmwareDownload)
 
 	def indexBMDA(self, db: SQLAlchemy, asset: GitHubAsset, release: Release):
 		pass
