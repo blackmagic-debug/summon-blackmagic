@@ -10,7 +10,7 @@ from .types import Probe
 __all__ = (
 	'db',
 	'Release',
-	'ReleaseFirmware',
+	'ReleaseProbe',
 	'FirmwareDownload',
 )
 
@@ -37,27 +37,29 @@ class Release(db.Model):
 	id: Mapped[i32] = mapped_column(primary_key = True)
 	version: Mapped[str]
 
-	firmware: Mapped[list['ReleaseFirmware']] = relationship(back_populates = 'release')
+	firmware: Mapped[list['ReleaseProbe']] = relationship(back_populates = 'release')
 
 	def __init__(self, version: str):
 		self.version = version
 
 # Firmware in a release by probe platform
-class ReleaseFirmware(db.Model):
+class ReleaseProbe(db.Model):
 	id: Mapped[i64] = mapped_column(primary_key = True)
 	releaseID: Mapped[i32] = mapped_column(ForeignKey(Release.id))
 	probe: Mapped[Probe]
 
 	release: Mapped[Release] = relationship(back_populates = 'firmware')
-	variants: Mapped[list['FirmwareDownload']] = relationship()
+	variants: Mapped[list['FirmwareDownload']] = relationship(back_populates = 'probe')
 
 # Downloads for firmware available for a probe
 class FirmwareDownload(db.Model):
 	id: Mapped[i64] = mapped_column(primary_key = True)
-	releaseFirmwareID: Mapped[i64] = mapped_column(ForeignKey(ReleaseFirmware.id))
+	releaseFirmwareID: Mapped[i64] = mapped_column(ForeignKey(ReleaseProbe.id))
 	friendlyName: Mapped[str]
 	fileName: Mapped[Path]
 	uri: Mapped[str]
 	# If there are multiple firmware downloads for one probe in one release, this
 	# provides a name to which variant this download is for
 	variantName: Mapped[str]
+
+	probe: Mapped[ReleaseProbe] = relationship(back_populates = 'variants')
