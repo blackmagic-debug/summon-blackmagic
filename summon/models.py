@@ -51,6 +51,10 @@ class ReleaseProbe(db.Model):
 	release: Mapped[Release] = relationship(back_populates = 'firmware')
 	variants: Mapped[list['FirmwareDownload']] = relationship(back_populates = 'probe')
 
+	def __init__(self, release: Release, probe: str):
+		self.release = release
+		self.probe = Probe.fromString(probe)
+
 # Downloads for firmware available for a probe
 class FirmwareDownload(db.Model):
 	id: Mapped[i64] = mapped_column(primary_key = True)

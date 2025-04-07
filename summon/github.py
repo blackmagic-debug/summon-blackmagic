@@ -3,7 +3,7 @@ from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import sql
 import requests
 
-from .models import Release
+from .models import Release, ReleaseProbe
 from .githubTypes import GitHubRelease, GitHubAsset
 
 # Represents our bindings to the GitHub API as much as we care to have
@@ -15,7 +15,7 @@ class GitHubAPI:
 		self.apiVersion = '2022-11-28'
 
 	# Extract a list of current releases off the BMD repo, and update the DB with it
-	def updateReleases(self, db: SQLAlchemy):
+	def updateReleases(self, db: SQLAlchemy) -> list[Release]:
 		# Fire off the request with the API token and version specified
 		response = requests.get(
 			'https://api.github.com/repos/blackmagic-debug/blackmagic/releases',
@@ -95,10 +95,22 @@ class GitHubAPI:
 
 		# With the probe and variant established, try to find the probe in the
 		# database for the release (and add it if it's not)
-		probe = self.findProbe(db, probe)
+		probe = self.findProbe(db, release, probe)
 
 	def indexBMDA(self, db: SQLAlchemy, asset: GitHubAsset, release: Release):
 		pass
 
-	def findProbe(self, db: SQLAlchemy, probe: str):
-		pass
+	def findProbe(self, db: SQLAlchemy, release: Release, probe: str) -> ReleaseProbe:
+		# Check and see if this probe is already in the database for this release
+		releaseProbe = db.session.execute(
+			sql.select(ReleaseProbe).filter_by(releaseID = release.id, probe = probe)
+		).scalar()
+
+		# If it is, then return that
+		if releaseProbe is not None:
+			return releaseProbe
+
+		# It was not, so make a new one, add it to the database and return
+		releaseProbe = ReleaseProbe(release, probe)
+		db.session.add(releaseProbe)
+		return releaseProbe
