@@ -52,24 +52,53 @@ class GitHubAPI:
 				name = asset['name']
 				# Firmware ends with .elf, BMDA with .zip and when the asset name does not contain 'source' in the name
 				if name.endswith('.elf') or (name.endswith('.zip') and 'source' not in name):
-					self.indexAsset(asset, release.id)
+					self.indexAsset(db, asset, release)
 
 		# Make sure any additions made by this function to the databse stick
 		db.session.commit()
 		return releases
 
 	# Process an asset from a release, and turn it into a firmware download in the database
-	def indexAsset(self, asset: GitHubAsset, releaseID: int):
+	def indexAsset(self, db: SQLAlchemy, asset: GitHubAsset, release: Release):
 		# Determine if this is firmware or BMDA
 		if asset['name'].endswith('.elf'):
-			self.indexFirmware(asset, releaseID)
+			self.indexFirmware(db, asset, release)
 		# Otherwise it's BMDA
 		else:
-			self.indexBMDA(asset, releaseID)
+			self.indexBMDA(db, asset, release)
 
 	# Index a firmware build into the database against a release
-	def indexFirmware(self, asset: GitHubAsset, releaseID: int):
+	def indexFirmware(self, db: SQLAlchemy, asset: GitHubAsset, release: Release):
+		# Firmware ELF files have the general name form of:
+		# blackmagic-<probe>-<variant>-<release>.elf
+		# or blackmagic-<probe>-<release>.elf
+		# Check that the end of the file name is actually the release name
+		releaseName = release.version.replace('.', '_')
+		fileNameSuffix = f'-{releaseName}.elf'
+		fileName = asset['name']
+		# If it does not, then we're done here..
+		if not fileName.endswith(fileNameSuffix):
+			return
+
+		# Grab only the front of the file name and tear it apart
+		nameParts = fileName[:-len(fileNameSuffix)].split('-')
+		# Remove the 'blackmagic' part, we don't want to be having to deal with that
+		nameParts.pop(0)
+		# Now extract which probe this is for
+		probe = nameParts.pop(0).lower()
+		# If there are now only 1 part left, the next is the variant
+		if len(nameParts) > 1:
+			variant = nameParts.pop(0).lower()
+		else:
+			# Otherwise this ia a full firmware build for this platform, not a variant
+			variant = 'full'
+
+		# With the probe and variant established, try to find the probe in the
+		# database for the release (and add it if it's not)
+		probe = self.findProbe(db, probe)
+
+	def indexBMDA(self, db: SQLAlchemy, asset: GitHubAsset, release: Release):
 		pass
 
-	def indexBMDA(self, asset: GitHubAsset, releaseID: int):
+	def findProbe(self, db: SQLAlchemy, probe: str):
 		pass
