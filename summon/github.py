@@ -31,6 +31,10 @@ class GitHubAPI:
 
 		# Iterate through all the release descriptors that GitHub has returned
 		for releaseFragment in releaseFragments:
+			# Check and make sure this is an actually published release
+			if releaseFragment['draft']:
+				continue
+
 			# See if the release is already present in the database
 			releaseVersion = releaseFragment['tag_name']
 			release = db.session.execute(sql.select(Release).filter_by(version = releaseVersion)).scalar()
