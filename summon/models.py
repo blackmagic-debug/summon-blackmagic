@@ -5,7 +5,7 @@ from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, registry, rel
 from pathlib import Path
 from typing import NewType
 
-from .types import Probe
+from .types import Probe, UnicodePath
 
 __all__ = (
 	'db',
@@ -22,10 +22,11 @@ i64 = NewType("i64", int)
 class Model(DeclarativeBase):
 	registry = registry(
 		type_annotation_map = {
-			Path: types.String,
-			i32: types.Integer,
-			i64: types.BigInteger,
-			Probe: types.Integer,
+			Path: UnicodePath(),
+			i32: types.Integer(),
+			# SQLite is stupid and needs our primary key fields to be i32 to be autoincrement 🙃
+			i64: types.BigInteger().with_variant(types.Integer(), 'sqlite'),
+			Probe: types.Integer(),
 		}
 	)
 
