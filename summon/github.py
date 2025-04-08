@@ -56,6 +56,10 @@ class GitHubAPI:
 				if name.endswith('.elf') or (name.endswith('.zip') and 'source' not in name):
 					self.indexAsset(db, asset, release)
 
+			# Having built a list of all the assets by probe, go through and make sure the variant names,
+			# file names and friendly names are set appropriately (fixup for full -> common)
+			self.harmoniseDownloadNames(release)
+
 		# Make sure any additions made by this function to the databse stick
 		db.session.commit()
 		return releases
@@ -87,7 +91,7 @@ class GitHubAPI:
 		# Remove the 'blackmagic' part, we don't want to be having to deal with that
 		nameParts.pop(0)
 		# Now extract which probe this is for
-		probe = nameParts.pop(0).lower()
+		probeName = nameParts.pop(0).lower()
 		# If there are now only 1 part left, the next is the variant
 		if len(nameParts) != 0:
 			variant = '-'.join(nameParts).lower()
@@ -97,16 +101,17 @@ class GitHubAPI:
 
 		# With the probe and variant established, try to find the probe in the
 		# database for the release (and add it if it's not)
-		releaseProbe = self.findProbe(db, release, Probe.fromString(probe))
+		releaseProbe = self.findProbe(db, release, Probe.fromString(probeName))
+		probe = releaseProbe.probe
 
 		# Now build a description of this firwmare download for that probe
 		firmwareDownload = FirmwareDownload(releaseProbe)
 		firmwareDownload.uri = asset['browser_download_url']
 		firmwareDownload.variantName = variant
 		# Build a new file name that we can guarantee to be unique on the user's system
-		firmwareDownload.fileName = Path(f'blackmagic-{probe}-{variant}-{release.version}.elf')
+		firmwareDownload.fileName = Path(f'blackmagic-{probe.toString()}-{variant}-{release.version}.elf')
 		# Build a friendly name for this download
-		probeFriendlyName = 'BMP' if releaseProbe.probe == Probe.native else probe
+		probeFriendlyName = 'BMP' if probe == Probe.native else probe.toString()
 		firmwareDownload.friendlyName = f'Black Magic Debug for {probeFriendlyName} ({variantFriendlyName(variant)})'
 
 		# Finally, add it to the database now we're done defining it
@@ -129,3 +134,23 @@ class GitHubAPI:
 		releaseProbe = ReleaseProbe(release, probe)
 		db.session.add(releaseProbe)
 		return releaseProbe
+
+	def harmoniseDownloadNames(self, release: Release):
+		# Loop through all the probes in the release
+		for releaseProbe in release.probeFirmware:
+			# If the probe only has one variant or none, skip
+			if len(releaseProbe.variants) <= 1:
+				continue
+
+			probe = releaseProbe.probe
+			# Loop through the variants
+			for variant in releaseProbe.variants:
+				# See if the variant is named 'full', and skip if not
+				if variant.variantName != 'full':
+					continue
+
+				# Ok, we've found a 'full' variant in a multi-variant set - fixup to 'common'
+				variant.variantName = 'common'
+				variant.fileName = Path(f'blackmagic-{probe.toString()}-{variant.variantName}-{release.version}.elf')
+				probeFriendlyName = 'BMP' if probe == Probe.native else probe.toString()
+				variant.friendlyName = f'Black Magic Debug for {probeFriendlyName} ({variantFriendlyName(variant.variantName)})'
