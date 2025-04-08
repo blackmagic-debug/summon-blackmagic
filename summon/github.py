@@ -39,7 +39,7 @@ class GitHubAPI:
 
 			# See if the release is already present in the database
 			releaseVersion = releaseFragment['tag_name']
-			release = db.session.execute(sql.select(Release).filter_by(version = releaseVersion)).scalar()
+			release = db.session.execute(sql.select(Release).where(Release.version == releaseVersion)).scalar()
 			# If there is one present, we've already cached this one so skip it
 			if release is not None:
 				continue
@@ -97,7 +97,7 @@ class GitHubAPI:
 
 		# With the probe and variant established, try to find the probe in the
 		# database for the release (and add it if it's not)
-		releaseProbe = self.findProbe(db, release, probe)
+		releaseProbe = self.findProbe(db, release, Probe.fromString(probe))
 
 		# Now build a description of this firwmare download for that probe
 		firmwareDownload = FirmwareDownload(releaseProbe)
@@ -115,10 +115,10 @@ class GitHubAPI:
 	def indexBMDA(self, db: SQLAlchemy, asset: GitHubAsset, release: Release):
 		pass
 
-	def findProbe(self, db: SQLAlchemy, release: Release, probe: str) -> ReleaseProbe:
+	def findProbe(self, db: SQLAlchemy, release: Release, probe: Probe) -> ReleaseProbe:
 		# Check and see if this probe is already in the database for this release
 		releaseProbe = db.session.execute(
-			sql.select(ReleaseProbe).filter_by(releaseID = release.id, probe = probe)
+			sql.select(ReleaseProbe).where(ReleaseProbe.releaseID == release.id, ReleaseProbe.probe == probe)
 		).scalar()
 
 		# If it is, then return that
