@@ -34,7 +34,7 @@ db = SQLAlchemy(model_class = Model)
 
 # Releases of BMD that have been made
 class Release(db.Model):
-	id: Mapped[i32] = mapped_column(primary_key = True)
+	id: Mapped[i32] = mapped_column(primary_key = True, autoincrement = True, unique = True)
 	version: Mapped[str]
 
 	firmware: Mapped[list['ReleaseProbe']] = relationship(back_populates = 'release')
@@ -44,7 +44,7 @@ class Release(db.Model):
 
 # Firmware in a release by probe platform
 class ReleaseProbe(db.Model):
-	id: Mapped[i64] = mapped_column(primary_key = True)
+	id: Mapped[i64] = mapped_column(primary_key = True, autoincrement = True, unique = True)
 	releaseID: Mapped[i32] = mapped_column(ForeignKey(Release.id))
 	probe: Mapped[Probe]
 
@@ -57,7 +57,7 @@ class ReleaseProbe(db.Model):
 
 # Downloads for firmware available for a probe
 class FirmwareDownload(db.Model):
-	id: Mapped[i64] = mapped_column(primary_key = True)
+	id: Mapped[i64] = mapped_column(primary_key = True, autoincrement = True, unique = True)
 	releaseFirmwareID: Mapped[i64] = mapped_column(ForeignKey(ReleaseProbe.id))
 	friendlyName: Mapped[str]
 	fileName: Mapped[Path]
