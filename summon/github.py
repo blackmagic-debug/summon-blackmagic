@@ -39,7 +39,7 @@ class GitHubAPI:
 
 			# See if the release is already present in the database
 			releaseVersion = releaseFragment['tag_name']
-			release = db.session.execute(sql.select(Release).where(Release.version == releaseVersion)).scalar()
+			release = db.session.scalar(sql.select(Release).where(Release.version == releaseVersion))
 			# If there is one present, we've already cached this one so skip it
 			if release is not None:
 				continue
@@ -117,9 +117,9 @@ class GitHubAPI:
 
 	def findProbe(self, db: SQLAlchemy, release: Release, probe: Probe) -> ReleaseProbe:
 		# Check and see if this probe is already in the database for this release
-		releaseProbe = db.session.execute(
+		releaseProbe = db.session.scalar(
 			sql.select(ReleaseProbe).where(ReleaseProbe.releaseID == release.id, ReleaseProbe.probe == probe)
-		).scalar()
+		)
 
 		# If it is, then return that
 		if releaseProbe is not None:
