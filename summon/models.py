@@ -5,7 +5,7 @@ from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, registry, rel
 from pathlib import Path
 from typing import NewType
 
-from .types import Probe, UnicodePath
+from .types import Probe, UnicodePath, intEnumMapper
 
 __all__ = (
 	'db',
@@ -26,7 +26,7 @@ class Model(DeclarativeBase):
 			i32: types.Integer(),
 			# SQLite is stupid and needs our primary key fields to be i32 to be autoincrement 🙃
 			i64: types.BigInteger().with_variant(types.Integer(), 'sqlite'),
-			Probe: types.Integer(),
+			Probe: intEnumMapper(type = Probe),
 		}
 	)
 
