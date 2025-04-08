@@ -38,7 +38,7 @@ class Release(db.Model):
 	id: Mapped[i32] = mapped_column(primary_key = True, autoincrement = True, unique = True)
 	version: Mapped[str]
 
-	firmware: Mapped[list['ReleaseProbe']] = relationship(back_populates = 'release')
+	probeFirmware: Mapped[list['ReleaseProbe']] = relationship(back_populates = 'release')
 
 	def __init__(self, version: str):
 		self.version = version
@@ -52,7 +52,7 @@ class ReleaseProbe(db.Model):
 	releaseID: Mapped[i32] = mapped_column(ForeignKey(Release.id))
 	probe: Mapped[Probe]
 
-	release: Mapped[Release] = relationship(back_populates = 'firmware')
+	release: Mapped[Release] = relationship(back_populates = 'probeFirmware')
 	variants: Mapped[list['FirmwareDownload']] = relationship(back_populates = 'probe')
 
 	def __init__(self, release: Release, probe: Probe | str):
