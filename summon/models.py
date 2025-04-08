@@ -43,6 +43,9 @@ class Release(db.Model):
 	def __init__(self, version: str):
 		self.version = version
 
+	def __repr__(self) -> str:
+		return f'<Release: {self.version}>'
+
 # Firmware in a release by probe platform
 class ReleaseProbe(db.Model):
 	id: Mapped[i64] = mapped_column(primary_key = True, autoincrement = True, unique = True)
@@ -55,6 +58,9 @@ class ReleaseProbe(db.Model):
 	def __init__(self, release: Release, probe: str):
 		self.release = release
 		self.probe = Probe.fromString(probe)
+
+	def __repr__(self) -> str:
+		return f'<ReleaseProbe: {self.probe.name} for {self.release.version}>'
 
 # Downloads for firmware available for a probe
 class FirmwareDownload(db.Model):
@@ -71,3 +77,6 @@ class FirmwareDownload(db.Model):
 
 	def __init__(self, probe: ReleaseProbe):
 		self.probe = probe
+
+	def __repr__(self) -> str:
+		return f'<FirmwareDownload: {self.friendlyName} for {self.probe.release.version}>'
