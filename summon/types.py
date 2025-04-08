@@ -72,6 +72,40 @@ class Probe(IntEnum):
 			case _:
 				raise ValueError(f'Invalid probe name {name}')
 
+	# Convert a Probe value back into a string for serialisation
+	def toString(self) -> str:
+		match self:
+			case Probe._96bCarbon:
+				return '96b_carbon'
+			case Probe.blackpillF401CC:
+				return 'blackpill-f401cc'
+			case Probe.blackpillF401CE:
+				return 'blackpill-f401ce'
+			case Probe.blackpillF411CE:
+				return 'blackpill-f411ce'
+			case Probe.bluepill:
+				return 'bluepill'
+			case Probe.ctxLink:
+				return 'ctxlink'
+			case Probe.f072:
+				return 'f072'
+			case Probe.f3:
+				return 'f3'
+			case Probe.f4Discovery:
+				return 'f4discovery'
+			case Probe.hydraBus:
+				return 'hydrabus'
+			case Probe.launchpadICDI:
+				return 'launchpad-icdi'
+			case Probe.native:
+				return 'native'
+			case Probe.stlink:
+				return 'stlink'
+			case Probe.stlinkv3:
+				return 'stlinkv3'
+			case Probe.swlink:
+				return 'swlink'
+
 # Translate a firmware variant to its friendly name
 def variantFriendlyName(variant: str) -> str:
 	match variant:
@@ -130,6 +164,7 @@ class UnicodePath(Concatenable, TypeEngine[Path]):
 
 # SQLAlchemy integer type for IntEnum storage and unmapping
 def intEnumMapper(*, type: type[IntEnumT]):
+	# This is wrapped in a closure so `type` is able to pass through to this class properly and reliably
 	class IntEnumMapper(TypeEngine[IntEnumT]):
 		__visit_name__ = "integer"
 
