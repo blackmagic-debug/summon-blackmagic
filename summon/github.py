@@ -89,8 +89,8 @@ class GitHubAPI:
 		# Now extract which probe this is for
 		probe = nameParts.pop(0).lower()
 		# If there are now only 1 part left, the next is the variant
-		if len(nameParts) > 1:
-			variant = nameParts.pop(0).lower()
+		if len(nameParts) != 0:
+			variant = '-'.join(nameParts).lower()
 		else:
 			# Otherwise this ia a full firmware build for this platform, not a variant
 			variant = 'full'
