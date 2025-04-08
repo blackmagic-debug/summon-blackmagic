@@ -1,5 +1,10 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from enum import IntEnum, unique
+from pathlib import Path
+from sqlalchemy.types import Concatenable, TypeEngine
+from sqlalchemy.sql import type_api
+from sqlalchemy.engine.interfaces import Dialect
+from types import ModuleType
 
 __all__ = (
 	'Probe',
@@ -76,3 +81,47 @@ def variantFriendlyName(variant: str) -> str:
 		# If we don't have a specific translation for this, just use the variant name itself
 		case _:
 			return variant
+
+# SQLAlchemy unicode string type for holding file paths
+class UnicodePath(Concatenable, TypeEngine[Path]):
+	__visit_name__ = "unicode"
+	length: int | None = None
+
+	def __init__(self, *, dialect: str | None = None):
+		if dialect == 'sqlite':
+			self.collation = None
+		else:
+			self.collation = 'utf8'
+			self._variant_mapping = self._variant_mapping.union(
+				{'sqlite': UnicodePath(dialect = 'sqlite')}
+			)
+
+	def literal_processor(self, dialect: Dialect) -> type_api._LiteralProcessorType[Path]:
+		def process(value: Path) -> str:
+			path = str(value).replace("'", "''")
+
+			if dialect.identifier_preparer._double_percents:
+				path = path.replace("%", "%%")
+
+			return f"'{path}'"
+
+		return process
+
+	def bind_processor(self, dialect: Dialect) -> type_api._BindProcessorType[Path]:
+		def process(value: Path | None) -> str:
+			return str(value)
+
+		return process
+
+	def result_processor(self, dialect: Dialect, coltype: object) -> type_api._ResultProcessorType[Path]:
+		def process(value: str) -> Path:
+			return Path(value)
+
+		return process
+
+	@property
+	def python_type(self):
+		return Path
+
+	def get_dbapi_type(self, dbapi: ModuleType):
+		return dbapi.STRING
