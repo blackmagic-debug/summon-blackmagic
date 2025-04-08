@@ -104,8 +104,10 @@ class UnicodePath(Concatenable, TypeEngine[Path]):
 
 	# Define how to convert a Path value into something that can be bound into the query
 	def bind_processor(self, dialect: Dialect) -> type_api._BindProcessorType[Path]:
-		def process(value: Path | None) -> str:
-			return str(value)
+		def process(value: Path | None) -> str | None:
+			if value is not None:
+				return str(value)
+			return None
 		return process
 
 	# Define how to convert a value from a result set back into a Path from a query
