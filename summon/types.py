@@ -87,6 +87,8 @@ class UnicodePath(Concatenable, TypeEngine[Path]):
 	__visit_name__ = "unicode"
 	length: int | None = None
 
+	# When a new one of these is created (for the mapping system), automatically
+	# include a variant so it behaves correctly for SQLite
 	def __init__(self, *, dialect: str | None = None):
 		if dialect == 'sqlite':
 			self.collation = None
@@ -96,27 +98,20 @@ class UnicodePath(Concatenable, TypeEngine[Path]):
 				{'sqlite': UnicodePath(dialect = 'sqlite')}
 			)
 
-	def literal_processor(self, dialect: Dialect) -> type_api._LiteralProcessorType[Path]:
-		def process(value: Path) -> str:
-			path = str(value).replace("'", "''")
+	# Disallow path literals to be processed into the query, only allow binds/unbinds
+	def literal_processor(self, dialect: Dialect) -> None:
+		return None
 
-			if dialect.identifier_preparer._double_percents:
-				path = path.replace("%", "%%")
-
-			return f"'{path}'"
-
-		return process
-
+	# Define how to convert a Path value into something that can be bound into the query
 	def bind_processor(self, dialect: Dialect) -> type_api._BindProcessorType[Path]:
 		def process(value: Path | None) -> str:
 			return str(value)
-
 		return process
 
+	# Define how to convert a value from a result set back into a Path from a query
 	def result_processor(self, dialect: Dialect, coltype: object) -> type_api._ResultProcessorType[Path]:
 		def process(value: str) -> Path:
 			return Path(value)
-
 		return process
 
 	@property
