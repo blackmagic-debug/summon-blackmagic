@@ -55,9 +55,12 @@ class ReleaseProbe(db.Model):
 	release: Mapped[Release] = relationship(back_populates = 'firmware')
 	variants: Mapped[list['FirmwareDownload']] = relationship(back_populates = 'probe')
 
-	def __init__(self, release: Release, probe: str):
+	def __init__(self, release: Release, probe: Probe | str):
 		self.release = release
-		self.probe = Probe.fromString(probe)
+		if isinstance(probe, Probe):
+			self.probe = probe
+		else:
+			self.probe = Probe.fromString(probe)
 
 	def __repr__(self) -> str:
 		return f'<ReleaseProbe: {self.probe.name} for {self.release.version}>'
