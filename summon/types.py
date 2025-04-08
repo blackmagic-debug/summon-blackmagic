@@ -4,12 +4,17 @@ from pathlib import Path
 from sqlalchemy.types import Concatenable, TypeEngine
 from sqlalchemy.sql import type_api
 from sqlalchemy.engine.interfaces import Dialect
+from typing import Generic, TypeVar
 from types import ModuleType
 
 __all__ = (
 	'Probe',
-	'variantFriendlyName'
+	'variantFriendlyName',
+	'UnicodePath',
+	'',
 )
+
+IntEnumT = TypeVar('IntEnumT', bound = IntEnum)
 
 # Enumeration of the available valid probe platforms
 @unique
@@ -122,3 +127,37 @@ class UnicodePath(Concatenable, TypeEngine[Path]):
 
 	def get_dbapi_type(self, dbapi: ModuleType):
 		return dbapi.STRING
+
+# SQLAlchemy integer type for IntEnum storage and unmapping
+def intEnumMapper(*, type: type[IntEnumT]):
+	class IntEnumMapper(TypeEngine[IntEnumT]):
+		__visit_name__ = "integer"
+
+		# Define how to convert a literal of the mapped IntEnum to a string for use immediately in a query
+		def literal_processor(self, dialect: Dialect) -> type_api._LiteralProcessorType[IntEnumT]:
+			def process(value: IntEnumT) -> str:
+				return str(value.value)
+			return process
+
+		# Define how to convert a value of the mapped enum into something that can be bound into the query
+		def bind_processor(self, dialect: Dialect) -> type_api._BindProcessorType[IntEnumT]:
+			def process(value: IntEnumT | None) -> int | None:
+				if value is not None:
+					return value.value
+				return None
+			return process
+
+		# Define how to convert a value from a result set back into a value of the mapped enum type from a query
+		def result_processor(self, dialect: Dialect, coltype: object) -> type_api._ResultProcessorType[IntEnumT]:
+			def process(value: int) -> IntEnumT:
+				return type(value)
+			return process
+
+		@property
+		def python_type(self):
+			return type
+
+		def get_dbapi_type(self, dbapi: ModuleType):
+			return dbapi.NUMBER
+
+	return IntEnumMapper
