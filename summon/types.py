@@ -142,6 +142,16 @@ class TargetOS(IntEnum):
 			case _:
 				raise ValueError(f'Invalid operating system name {name}')
 
+	# Convert a TargetOS value back into a string for serialisation
+	def toString(self) -> str:
+		match self:
+			case TargetOS.linux:
+				return 'linux'
+			case TargetOS.macOS:
+				return 'macOS'
+			case TargetOS.windows:
+				return 'windows'
+
 @unique
 class TargetArch(IntEnum):
 	i386 = 0
