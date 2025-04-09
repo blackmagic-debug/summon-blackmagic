@@ -149,10 +149,14 @@ class GitHubAPI:
 				break
 
 		# We have to download the file anyway to identify the BMDA executable, so get that done
+		archivePath = self.downloadBMDA(asset['browser_download_url'])
 
 		# Now handle if we still don't know the target architecture of the binary
 		if targetArch is None:
 			pass
+
+		# When we get done, make sure to clean up the archive we downloaded
+		archivePath.unlink(missing_ok = True)
 
 	def findProbe(self, db: SQLAlchemy, release: Release, probe: Probe) -> ReleaseProbe:
 		# Check and see if this probe is already in the database for this release
@@ -188,3 +192,22 @@ class GitHubAPI:
 				variant.fileName = Path(f'blackmagic-{probe.toString()}-{variant.variantName}-{release.version}.elf')
 				probeFriendlyName = 'BMP' if probe == Probe.native else probe.toString()
 				variant.friendlyName = f'Black Magic Debug for {probeFriendlyName} ({variantFriendlyName(variant.variantName)})'
+
+	def downloadBMDA(self, uri: str) -> Path:
+		# Figure out where stick this archive (use /tmp!)
+		downloadPath = Path('/tmp/blackmagic-bmda.zip')
+		# If it already exists, clean up - this means something went wrong in a previous run
+		if downloadPath.exists():
+			# TOCTOU: This could be cleaned up between the check and unlink, so allow it to have gone missing
+			downloadPath.unlink(missing_ok = True)
+
+		# Request the file from the GH servers streamed
+		response = requests.get(uri, stream = True)
+		with downloadPath.open('wb') as file:
+			# Pull the file contents back in 4KiB chunks
+			for chunk in response.iter_content(chunk_size = 4096):
+				# Write the chunk out, however big it winds up being
+				file.write(chunk)
+
+		# When all's said and done, return where we stuck the downloaded file
+		return downloadPath
