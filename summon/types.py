@@ -170,7 +170,7 @@ class TargetArch(IntEnum):
 
 	# Construct a TargetOS from a string name for the operating system
 	@staticmethod
-	def fromString(name: str) -> 'TargetArch' | None:
+	def fromString(name: str) -> 'TargetArch | None':
 		match name:
 			case 'i386' | 'x86':
 				return TargetArch.i386
