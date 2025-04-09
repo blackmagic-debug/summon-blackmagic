@@ -6,7 +6,7 @@ import requests
 
 from .models import Release, ReleaseProbe, FirmwareDownload
 from .githubTypes import GitHubRelease, GitHubAsset
-from .types import Probe, variantFriendlyName
+from .types import Probe, variantFriendlyName, TargetOS, TargetArch
 
 # All valid release files start with this prefix
 fileNamePrefix = 'blackmagic-'
@@ -119,7 +119,40 @@ class GitHubAPI:
 		db.session.add(firmwareDownload)
 
 	def indexBMDA(self, db: SQLAlchemy, asset: GitHubAsset, release: Release):
-		pass
+		# BMDA release files have the general name form of:
+		# blackmagic-<os>-<os-ver>-<arch>-<release>.zip
+		# Where the architecture and OS version are both optional and omitable.
+		# So, disecting these is a bit of a pain.. but here goes:
+		# Check that the end of the file name is actually the release name, and the start 'blackmagic-'
+		releaseName = release.version.replace('.', '_')
+		fileNameSuffix = f'-{releaseName}.zip'
+		fileName = asset['name']
+		# If it does not, then we're done here..
+		if not fileName.startswith(fileNamePrefix) or not fileName.endswith(fileNameSuffix):
+			return
+
+		# Now grab only the middle part of the file name, and tear it apart
+		nameParts = fileName[len(fileNamePrefix):-len(fileNameSuffix)].split('-')
+		# The first part is the OS on which this is to be run on, so convert that to a TargetOS enum value
+		targetOS = TargetOS.fromString(nameParts.pop(0).lower())
+
+		# We now have a few options here.. the first is that the file name contains an OS version.. but
+		# it's actually easier to see if there's an architecture present, and pop that out till we run out
+		# of components - if we don't recover one, we have to download the zip file to temporary storage and
+		# tear the archive apart to figure out what it can be run on.
+		targetArch: TargetArch | None = None
+		for idx, part in enumerate(nameParts):
+			arch = TargetArch.fromString(part.lower())
+			if arch is not None:
+				targetArch = arch
+				nameParts.pop(idx)
+				break
+
+		# We have to download the file anyway to identify the BMDA executable, so get that done
+
+		# Now handle if we still don't know the target architecture of the binary
+		if targetArch is None:
+			pass
 
 	def findProbe(self, db: SQLAlchemy, release: Release, probe: Probe) -> ReleaseProbe:
 		# Check and see if this probe is already in the database for this release
