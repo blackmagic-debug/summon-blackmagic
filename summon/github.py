@@ -4,6 +4,7 @@ from sqlalchemy import sql
 from pathlib import Path
 from zipfile import ZipFile, ZipInfo
 import requests
+import magic
 
 from .models import Release, ReleaseProbe, FirmwareDownload
 from .githubTypes import GitHubRelease, GitHubAsset
@@ -154,12 +155,25 @@ class GitHubAPI:
 		# Turn the archive into a ZipFile resource so we can read out the contents and figure out what the
 		# BMDA binary is actually named - which we have to do before we can further determine architecture
 		archive = ZipFile(archivePath, mode = 'r')
-
 		bmdaFileName = self.determineBMDAFileName(archive.infolist())
+		# If we could not find a valid name for the BMDA binary, we're done here..
+		if bmdaFileName is None:
+			archive.close()
+			archivePath.unlink(missing_ok = True)
+			return
 
 		# Now handle if we still don't know the target architecture of the binary
 		if targetArch is None:
-			pass
+			# Extract the BMDA binary from the archive to be able to futz with it
+			bmdaFile = Path(archive.extract(bmdaFileName, path = '/tmp'))
+			# Get the file magic for it and figure out what architecture is represented
+			targetArch = self.determineBMDAArch(magic.from_file(bmdaFile).lower())
+			bmdaFile.unlink()
+			# If we did not get a supported architecture, we're done!
+			if targetArch is None:
+				archive.close()
+				archivePath.unlink(missing_ok = True)
+				return
 
 		# When we get done, make sure to clean up the archive we downloaded
 		archive.close()
@@ -240,4 +254,17 @@ class GitHubAPI:
 				return file
 
 		# If we didn't find one, indicate that by returning None
+		return None
+
+	def determineBMDAArch(self, magic: str) -> TargetArch | None:
+		# If the file magic contains one of these substrings somewhere in it, we have an AMD64 binary (probably)
+		if 'x86-64' in magic or 'x86_64' in magic:
+			return TargetArch.amd64
+		# If the file magic contains i*86, we have an i386 binary (probably)
+		if 'i386' in magic or 'i486' in magic or 'i586' in magic or 'i686' in magic:
+			return TargetArch.i386
+		# If the file contains one of these substrings, we have an AArch64 binary for sure
+		if 'aarch64' in magic or 'arm64' in magic:
+			return TargetArch.aarch64
+
 		return None
