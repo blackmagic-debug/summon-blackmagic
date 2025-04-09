@@ -129,6 +129,19 @@ class TargetOS(IntEnum):
 	macOS = 1
 	windows = 2
 
+	# Construct a TargetOS from a string name for the operating system
+	@staticmethod
+	def fromString(name: str) -> 'TargetOS':
+		match name:
+			case 'linux':
+				return TargetOS.linux
+			case 'macos':
+				return TargetOS.macOS
+			case 'windows':
+				return TargetOS.windows
+			case _:
+				raise ValueError(f'Invalid operating system name {name}')
+
 @unique
 class TargetArch(IntEnum):
 	i386 = 0
