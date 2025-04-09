@@ -6,7 +6,7 @@ from zipfile import ZipFile, ZipInfo
 import requests
 import magic
 
-from .models import Release, ReleaseProbe, FirmwareDownload
+from .models import Release, ReleaseProbe, FirmwareDownload, BMDABinary
 from .githubTypes import GitHubRelease, GitHubAsset
 from .types import Probe, variantFriendlyName, TargetOS, TargetArch
 
@@ -175,9 +175,16 @@ class GitHubAPI:
 				archivePath.unlink(missing_ok = True)
 				return
 
+		# We now have all the moving pieces - turn the information we have into an entry in the database
+		binary = BMDABinary(release, targetOS, targetArch)
+		binary.uri = asset['browser_download_url']
+		binary.fileName = Path(bmdaFileName.filename)
+
 		# When we get done, make sure to clean up the archive we downloaded
 		archive.close()
 		archivePath.unlink(missing_ok = True)
+		# Finally, add it to the database now we're done defining it
+		db.session.add(binary)
 
 	def findProbe(self, db: SQLAlchemy, release: Release, probe: Probe) -> ReleaseProbe:
 		# Check and see if this probe is already in the database for this release
