@@ -152,6 +152,15 @@ class TargetOS(IntEnum):
 			case TargetOS.windows:
 				return 'windows'
 
+	def __repr__(self) -> str:
+		match self:
+			case TargetOS.linux:
+				return 'Linux'
+			case TargetOS.macOS:
+				return 'macOS'
+			case TargetOS.windows:
+				return 'Windows'
+
 @unique
 class TargetArch(IntEnum):
 	i386 = 0
@@ -173,6 +182,29 @@ class TargetArch(IntEnum):
 				return TargetArch.aarch64
 			case _:
 				return None
+
+	# Convert a TargetOS value back into a string for serialisation
+	def toString(self) -> str:
+		match self:
+			case TargetArch.i386:
+				return 'i386'
+			case TargetArch.amd64:
+				return 'amd64'
+			case TargetArch.aarch32:
+				return 'aarch32'
+			case TargetArch.aarch64:
+				return 'aarch64'
+
+	def __repr__(self) -> str:
+		match self:
+			case TargetArch.i386:
+				return 'i386'
+			case TargetArch.amd64:
+				return 'amd64'
+			case TargetArch.aarch32:
+				return 'AArch32'
+			case TargetArch.aarch64:
+				return 'AArch64'
 
 # SQLAlchemy unicode string type for holding file paths
 class UnicodePath(Concatenable, TypeEngine[Path]):
