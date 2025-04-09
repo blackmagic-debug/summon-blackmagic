@@ -168,7 +168,7 @@ class TargetArch(IntEnum):
 	aarch32 = 2
 	aarch64 = 3
 
-	# Construct a TargetOS from a string name for the operating system
+	# Construct a TargetArch from a string name for the ISA of the binary
 	@staticmethod
 	def fromString(name: str) -> 'TargetArch | None':
 		match name:
@@ -183,7 +183,7 @@ class TargetArch(IntEnum):
 			case _:
 				return None
 
-	# Convert a TargetOS value back into a string for serialisation
+	# Convert a TargetArch value back into a string for serialisation
 	def toString(self) -> str:
 		match self:
 			case TargetArch.i386:
