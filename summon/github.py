@@ -8,6 +8,9 @@ from .models import Release, ReleaseProbe, FirmwareDownload
 from .githubTypes import GitHubRelease, GitHubAsset
 from .types import Probe, variantFriendlyName
 
+# All valid release files start with this prefix
+fileNamePrefix = 'blackmagic-'
+
 # Represents our bindings to the GitHub API as much as we care to have
 class GitHubAPI:
 	# Initialise a connection to the API using the API token from the config
@@ -78,18 +81,16 @@ class GitHubAPI:
 		# Firmware ELF files have the general name form of:
 		# blackmagic-<probe>-<variant>-<release>.elf
 		# or blackmagic-<probe>-<release>.elf
-		# Check that the end of the file name is actually the release name
+		# Check that the end of the file name is actually the release name, and the start 'blackmagic-'
 		releaseName = release.version.replace('.', '_')
 		fileNameSuffix = f'-{releaseName}.elf'
 		fileName = asset['name']
 		# If it does not, then we're done here..
-		if not fileName.endswith(fileNameSuffix):
+		if not fileName.startswith(fileNamePrefix) or not fileName.endswith(fileNameSuffix):
 			return
 
-		# Grab only the front of the file name and tear it apart
-		nameParts = fileName[:-len(fileNameSuffix)].split('-')
-		# Remove the 'blackmagic' part, we don't want to be having to deal with that
-		nameParts.pop(0)
+		# Grab only the middle part of the file name and tear it apart
+		nameParts = fileName[len(fileNamePrefix):-len(fileNameSuffix)].split('-')
 		# Now extract which probe this is for
 		probeName = nameParts.pop(0).lower()
 		# If there are now only 1 part left, the next is the variant
