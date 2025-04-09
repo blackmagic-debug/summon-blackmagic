@@ -2,6 +2,7 @@
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import sql
 from pathlib import Path
+from zipfile import ZipFile, ZipInfo
 import requests
 
 from .models import Release, ReleaseProbe, FirmwareDownload
@@ -150,12 +151,18 @@ class GitHubAPI:
 
 		# We have to download the file anyway to identify the BMDA executable, so get that done
 		archivePath = self.downloadBMDA(asset['browser_download_url'])
+		# Turn the archive into a ZipFile resource so we can read out the contents and figure out what the
+		# BMDA binary is actually named - which we have to do before we can further determine architecture
+		archive = ZipFile(archivePath, mode = 'r')
+
+		bmdaFileName = self.determineBMDAFileName(archive.infolist())
 
 		# Now handle if we still don't know the target architecture of the binary
 		if targetArch is None:
 			pass
 
 		# When we get done, make sure to clean up the archive we downloaded
+		archive.close()
 		archivePath.unlink(missing_ok = True)
 
 	def findProbe(self, db: SQLAlchemy, release: Release, probe: Probe) -> ReleaseProbe:
@@ -211,3 +218,26 @@ class GitHubAPI:
 
 		# When all's said and done, return where we stuck the downloaded file
 		return downloadPath
+
+	def determineBMDAFileName(self, files: list[ZipInfo]) -> ZipInfo | None:
+		# Loop through each of the files in the zip file
+		for file in files:
+			# Skip entries which are directories, we don't care about those
+			if file.is_dir():
+				continue
+
+			# Otherwise, check to see if the file is one of the recognised names for BMDAs
+			filePath = Path(file.filename)
+			fileName = filePath.stem
+			fileExt = filePath.suffix
+			# If there is a file extension, it needs to be '.exe' (for Windows)
+			# and the file name component needs to be one of 'blackmagic-bmda' or 'blackmagic'
+			# to be recognised. Ignore anything else.
+			if (
+				(fileExt == '' or fileExt == '.exe') and
+				(fileName == 'blackmagic-bmda' or fileName == 'blackmagic')
+			):
+				return file
+
+		# If we didn't find one, indicate that by returning None
+		return None
