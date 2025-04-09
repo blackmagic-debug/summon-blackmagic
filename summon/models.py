@@ -5,13 +5,14 @@ from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, registry, rel
 from pathlib import Path
 from typing import NewType
 
-from .types import Probe, UnicodePath, intEnumMapper
+from .types import Probe, TargetOS, TargetArch, UnicodePath, intEnumMapper
 
 __all__ = (
 	'db',
 	'Release',
 	'ReleaseProbe',
 	'FirmwareDownload',
+	'BMDABinary',
 )
 
 # Define types for mapping things in and out of the database cleanly
@@ -27,6 +28,8 @@ class Model(DeclarativeBase):
 			# SQLite is stupid and needs our primary key fields to be i32 to be autoincrement 🙃
 			i64: types.BigInteger().with_variant(types.Integer(), 'sqlite'),
 			Probe: intEnumMapper(type = Probe),
+			TargetOS: intEnumMapper(type = TargetOS),
+			TargetArch: intEnumMapper(type = TargetArch),
 		}
 	)
 
@@ -39,6 +42,7 @@ class Release(db.Model):
 	version: Mapped[str]
 
 	probeFirmware: Mapped[list['ReleaseProbe']] = relationship(back_populates = 'release')
+	bmdaDownloads: Mapped[list['BMDABinary']] = relationship(back_populates = 'release')
 
 	def __init__(self, version: str):
 		self.version = version
@@ -70,6 +74,8 @@ class FirmwareDownload(db.Model):
 	id: Mapped[i64] = mapped_column(primary_key = True, autoincrement = True, unique = True)
 	releaseFirmwareID: Mapped[i64] = mapped_column(ForeignKey(ReleaseProbe.id))
 	friendlyName: Mapped[str]
+	# This fileName is the name of the file the firmware is to be written into on the
+	# user's system as part of the firmware cache to uniquely identify the firmware
 	fileName: Mapped[Path]
 	uri: Mapped[str]
 	# If there are multiple firmware downloads for one probe in one release, this
@@ -83,3 +89,16 @@ class FirmwareDownload(db.Model):
 
 	def __repr__(self) -> str:
 		return f'<FirmwareDownload: {self.friendlyName} for {self.probe.release.version}>'
+
+# Downloads for zip files containing BMDA binaries
+class BMDABinary(db.Model):
+	id: Mapped[i64] = mapped_column(primary_key = True, autoincrement = True, unique = True)
+	releaseID: Mapped[i32] = mapped_column(ForeignKey(Release.id))
+	targetOS: Mapped[TargetOS]
+	targetArch: Mapped[TargetArch]
+	# This fileName is not the one above - this names the file in the archive that contains a BMDA
+	# binary, as the binary can be named different things for different platforms (eg, having .exe on the end)
+	fileName: Mapped[Path]
+	uri: Mapped[str]
+
+	release: Mapped[Release] = relationship(back_populates = 'bmdaDownloads')
