@@ -4,11 +4,13 @@ from pathlib import Path
 from sqlalchemy.types import Concatenable, TypeEngine
 from sqlalchemy.sql import type_api
 from sqlalchemy.engine.interfaces import Dialect
-from typing import Generic, TypeVar
+from typing import TypeVar
 from types import ModuleType
 
 __all__ = (
 	'Probe',
+	'TargetOS',
+	'TargetArch',
 	'variantFriendlyName',
 	'UnicodePath',
 	'',
@@ -120,6 +122,19 @@ def variantFriendlyName(variant: str) -> str:
 		# If we don't have a specific translation for this, just use the variant name itself
 		case _:
 			return variant
+
+@unique
+class TargetOS(IntEnum):
+	linux = 0
+	macOS = 1
+	windows = 2
+
+@unique
+class TargetArch(IntEnum):
+	i386 = 0
+	amd64 = 1
+	aarch32 = 2
+	aarch64 = 3
 
 # SQLAlchemy unicode string type for holding file paths
 class UnicodePath(Concatenable, TypeEngine[Path]):
