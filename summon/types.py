@@ -212,14 +212,19 @@ class UnicodePath(Concatenable, TypeEngine[Path]):
 	length: int | None = None
 
 	# When a new one of these is created (for the mapping system), automatically
-	# include a variant so it behaves correctly for SQLite
+	# include a variant so it behaves correctly for SQLite, and likewise for PostreSQL
 	def __init__(self, *, dialect: str | None = None):
 		if dialect == 'sqlite':
 			self.collation = None
+		elif dialect == 'postgresql':
+			self.collation = 'ucs_basic'
 		else:
 			self.collation = 'utf8'
 			self._variant_mapping = self._variant_mapping.union(
-				{'sqlite': UnicodePath(dialect = 'sqlite')}
+				{
+					'sqlite': UnicodePath(dialect = 'sqlite'),
+					'postgresql': UnicodePath(dialect = 'postgresql'),
+				}
 			)
 
 	# Disallow path literals to be processed into the query, only allow binds/unbinds
