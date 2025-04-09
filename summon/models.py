@@ -102,3 +102,11 @@ class BMDABinary(db.Model):
 	uri: Mapped[str]
 
 	release: Mapped[Release] = relationship(back_populates = 'bmdaDownloads')
+
+	def __init__(self, release: Release, targetOS: TargetOS, targetArch: TargetArch):
+		self.release = release
+		self.targetOS = targetOS
+		self.targetArch = targetArch
+
+	def __repr__(self) -> str:
+		return f'<BMDABinary: runs on {self.targetOS!r} ({self.targetArch!r}) for {self.release.version}>'
