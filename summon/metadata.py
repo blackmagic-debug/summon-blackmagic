@@ -23,13 +23,18 @@ def releasesToJSON(db: SQLAlchemy) -> dict:
 
 		# Otherwise, convert the firwmare entry list into a suitable JSON object
 		firmwareDict = probeFirmwareToJSON(release.probeFirmware)
+		includesBMDA = len(release.bmdaDownloads) != 0
 		bmdaDict = bmdaDownloadsToJSON(release.bmdaDownloads)
 
 		# Add the release to the result set
 		result[release.version] = {
-			"includesBMDA": False, # XXX: Should be determined by the presence of any BMDA entries
+			"includesBMDA": includesBMDA,
 			"firmware": firmwareDict,
 		}
+
+		# If this release includes BMDAs, then add the entry for that to the result dict
+		if includesBMDA:
+			result[release.version]['bmda'] = bmdaDict
 
 	return result
 
