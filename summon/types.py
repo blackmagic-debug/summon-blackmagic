@@ -159,6 +159,21 @@ class TargetArch(IntEnum):
 	aarch32 = 2
 	aarch64 = 3
 
+	# Construct a TargetOS from a string name for the operating system
+	@staticmethod
+	def fromString(name: str) -> 'TargetArch' | None:
+		match name:
+			case 'i386' | 'x86':
+				return TargetArch.i386
+			case 'x86_64' | 'amd64' | 'intel':
+				return TargetArch.amd64
+			case 'armhf' | 'aarch32':
+				return TargetArch.aarch32
+			case 'arm' | 'aarch64':
+				return TargetArch.aarch64
+			case _:
+				return None
+
 # SQLAlchemy unicode string type for holding file paths
 class UnicodePath(Concatenable, TypeEngine[Path]):
 	__visit_name__ = "unicode"
