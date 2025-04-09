@@ -148,7 +148,7 @@ class TargetOS(IntEnum):
 			case TargetOS.linux:
 				return 'linux'
 			case TargetOS.macOS:
-				return 'macOS'
+				return 'macos'
 			case TargetOS.windows:
 				return 'windows'
 
