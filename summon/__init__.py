@@ -16,18 +16,21 @@ app.config.from_pyfile('config.py')
 # Now initialise the database engine
 db.init_app(app)
 
+# Create an instance of the GitHub API interactor
+gitHubAPI = GitHubAPI(app.config['GITHUB_API_TOKEN'])
+
 # And make sure that all tables are properly defined in the database
 with app.app_context():
 	db.create_all()
+	# Having done this, also go poke the releases and populate the database with any changes
+	# that may have happened while we were down
+	gitHubAPI.updateReleases(db)
 
 # Register `db` to the Flask globals context for use in templates etc
 @app.before_request
 def build_up():
 	from flask import g
 	g.db = db
-
-# Create an instance of the GitHub API interactor
-gitHubAPI = GitHubAPI(app.config['GITHUB_API_TOKEN'])
 
 # Handler for '/' so people trying to access the server don't get a 404
 @app.route('/')
