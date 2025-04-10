@@ -10,7 +10,7 @@ import requests
 import magic
 
 from .models import Release, ReleaseProbe, FirmwareDownload, BMDABinary
-from .githubTypes import GitHubRelease, GitHubAsset, GitHubReleaseWebhook
+from .githubTypes import GitHubRelease, GitHubAsset, GitHubReleaseWebhook, GitHubReleaseChanges
 from .types import Probe, variantFriendlyName, TargetOS, TargetArch
 
 # All valid release files start with this prefix
@@ -85,6 +85,42 @@ class GitHubAPI:
 
 		# Otherwise, schedule this release for removal from the database, unindexing it
 		db.session.delete(release)
+
+	# Process the modification of a release - eg, correction of the naming of it
+	def updateRelease(self, db: SQLAlchemy, releaseFragment: GitHubRelease, changes: GitHubReleaseChanges):
+		# We actually only care if the change is to the tag name of the release
+		if 'tag_name' not in changes:
+			return
+		nameChange = changes['tag_name']
+		if nameChange is None:
+			return
+
+		# Try to locate the original release to modify
+		release = db.session.scalar(sql.select(Release).where(Release.version == nameChange['from']))
+		# If we could not find one, we're done.. nothing doing
+		if release is None:
+			return
+
+		# Otherwise, start by deleting all indexed assets
+		for probe in release.probeFirmware:
+			db.session.delete(probe)
+		for download in release.bmdaDownloads:
+			db.session.delete(download)
+
+		# Now update the release version string
+		release.version = releaseFragment['tag_name']
+
+		# Now loop through the release assets to re-index them
+		for asset in releaseFragment['assets']:
+			# If the asset is a build of BMDA or the firmware, we want to index that
+			name = asset['name']
+			# Firmware ends with .elf, BMDA with .zip and when the asset name does not contain 'source' in the name
+			if name.endswith('.elf') or (name.endswith('.zip') and 'source' not in name):
+				self.indexAsset(db, asset, release)
+
+		# Having built a list of all the assets by probe, go through and make sure the variant names,
+		# file names and friendly names are set appropriately (fixup for full -> common)
+		self.harmoniseDownloadNames(release)
 
 	# Process an asset from a release, and turn it into a firmware download in the database
 	def indexAsset(self, db: SQLAlchemy, asset: GitHubAsset, release: Release):
