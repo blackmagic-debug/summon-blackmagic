@@ -22,7 +22,7 @@ class GitHubAPI:
 		self.apiVersion = '2022-11-28'
 
 	# Extract a list of current releases off the BMD repo, and update the DB with it
-	def updateReleases(self, db: SQLAlchemy) -> list[Release]:
+	def updateReleases(self, db: SQLAlchemy):
 		# Fire off the request with the API token and version specified
 		response = requests.get(
 			'https://api.github.com/repos/blackmagic-debug/blackmagic/releases',
@@ -34,7 +34,6 @@ class GitHubAPI:
 		# We expect the response to be encoded as JSON
 		# XXX: Need to deal with the fact this response is pagenated to 30 results per request
 		releaseFragments: list[GitHubRelease] = response.json()
-		releases: list[Release] = []
 
 		# Iterate through all the release descriptors that GitHub has returned
 		for releaseFragment in releaseFragments:
@@ -43,7 +42,6 @@ class GitHubAPI:
 
 		# Make sure any additions made by this function to the databse stick
 		db.session.commit()
-		return releases
 
 	# Process the details of a specific release and try to index it
 	def indexRelease(self, db: SQLAlchemy, releaseFragment: GitHubRelease):
