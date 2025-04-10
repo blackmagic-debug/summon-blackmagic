@@ -166,9 +166,17 @@ class GitHubRelease(TypedDict):
 	author: GitHubUser
 	assets: list[GitHubAsset]
 
+GitHubReleaseChange = TypedDict('GitHubReleaseChange', {'from': str})
+
+class GitHubReleaseChanges(TypedDict):
+	body: GitHubReleaseChange | None
+	name: GitHubReleaseChange | None
+	tag_name: GitHubReleaseChange | None
+	make_latest: dict
+
 class GitHubReleaseWebhook(TypedDict):
 	action: str
-	changes: dict
+	changes: GitHubReleaseChanges | None
 	release: GitHubRelease
 	repostiory: GitHubRepository
 	organization: GitHubOrganisation
