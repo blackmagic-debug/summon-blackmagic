@@ -51,4 +51,15 @@ def releaseUpdate():
 	# than 5MiB (that's a lot of JSON!!)
 	if request.content_length > (5 * 1024 * 1024):
 		return 'Request too large', 413
-	return gitHubAPI.processReleaseWebhook(db, request, app.config['GITHUB_SECRET'].encode('utf8'))
+	# Determine which kind of webhook request this is
+	event = request.headers.get('X-GitHub-Event')
+	match event:
+		# For ping requests, just say we were successfull.. we don't care about anything else
+		case 'ping':
+			return 'Success', 200
+		# For release requests, dispatch to the release webhook handler
+		case 'release':
+			return gitHubAPI.processReleaseWebhook(db, request, app.config['GITHUB_SECRET'].encode('utf8'))
+		# For everything else, including None, say we're not here
+		case _:
+			return 'Not Found', 404
