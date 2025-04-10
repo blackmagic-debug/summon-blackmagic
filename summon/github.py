@@ -331,9 +331,9 @@ class GitHubAPI:
 
 	def processReleaseWebhook(self, db: SQLAlchemy, request: Request, secret: bytes):
 		# Start by seeing if the request data matches the HMAC-SHA256 from the headers
-		reqSignature = request.headers['X-Hub-Signature-256']
+		reqSignature = request.headers.get('X-Hub-Signature-256')
 		# Validate that the signature has the correct form
-		if not reqSignature.startswith('sha256='):
+		if reqSignature is None or not reqSignature.startswith('sha256='):
 			return 'Malformed request', 400
 		# Chop off the signature type suffix
 		reqSignature = reqSignature[7:]
