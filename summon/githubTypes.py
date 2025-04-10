@@ -165,3 +165,11 @@ class GitHubRelease(TypedDict):
 	published_at: str
 	author: GitHubUser
 	assets: list[GitHubAsset]
+
+class GitHubReleaseWebhook(TypedDict):
+	action: str
+	changes: dict
+	release: GitHubRelease
+	repostiory: GitHubRepository
+	organization: GitHubOrganisation
+	sender: GitHubUser
