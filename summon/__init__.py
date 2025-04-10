@@ -1,8 +1,9 @@
 # SPDX-License-Identifier: BSD-3-Clause
-from flask import Flask, render_template
+from flask import Flask, render_template, request
 
 from .models import db
 from .metadata import releasesToJSON
+from .github import GitHubAPI
 
 __all__ = (
 	'app',
@@ -25,6 +26,9 @@ def build_up():
 	from flask import g
 	g.db = db
 
+# Create an instance of the GitHub API interactor
+gitHubAPI = GitHubAPI(app.config['GITHUB_API_TOKEN'])
+
 # Handler for '/' so people trying to access the server don't get a 404
 @app.route('/')
 def index():
@@ -39,3 +43,12 @@ def metadata():
 		"version": 1,
 		"releases": releasesToJSON(db)
 	}
+
+@app.post('/releaseUpdate')
+def releaseUpdate():
+	# Before we hand the request off to the webhook handler, make sure it's not insanely big -
+	# releases should not be more than a couple of MiB, so check for the request being not larger
+	# than 5MiB (that's a lot of JSON!!)
+	if request.content_length > (5 * 1024 * 1024):
+		return 'Request too large', 413
+	return gitHubAPI.processReleaseWebhook(db, request, app.config['GITHUB_SECRET'].encode('utf8'))

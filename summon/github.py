@@ -1,13 +1,16 @@
 # SPDX-License-Identifier: BSD-3-Clause
+from flask import Request
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import sql
 from pathlib import Path
 from zipfile import ZipFile, ZipInfo
+from hashlib import sha256
+from hmac import HMAC, compare_digest
 import requests
 import magic
 
 from .models import Release, ReleaseProbe, FirmwareDownload, BMDABinary
-from .githubTypes import GitHubRelease, GitHubAsset
+from .githubTypes import GitHubRelease, GitHubAsset, GitHubReleaseWebhook
 from .types import Probe, variantFriendlyName, TargetOS, TargetArch
 
 # All valid release files start with this prefix
@@ -278,3 +281,28 @@ class GitHubAPI:
 			return TargetArch.aarch64
 
 		return None
+
+	def processReleaseWebhook(self, db: SQLAlchemy, request: Request, secret: bytes):
+		# Start by seeing if the request data matches the HMAC-SHA256 from the headers
+		reqSignature = request.headers['X-Hub-Signature-256']
+		# Validate that the signature has the correct form
+		if not reqSignature.startswith('sha256='):
+			return 'Malformed request', 400
+		# Chop off the signature type suffix
+		reqSignature = reqSignature[7:]
+
+		# Now compute the HMAC-SHA256 of the reqeust body to compare to the signature from the request
+		hmac = HMAC(secret, request.data, sha256)
+		bodySignature = hmac.hexdigest()
+		# Having computed this, make sure the digest matches
+		if not compare_digest(reqSignature, bodySignature):
+			return 'Forbidden', 403
+
+		# Unpack the request as JSON now we know this is a request from GitHub
+		webhookRequest: GitHubReleaseWebhook | None = request.json
+		assert webhookRequest is not None
+
+		# Make sure any changes made in the handling of this notification have stuck
+		db.session.commit()
+		# If all went well, tell the GH server we handled things
+		return 'Processed', 200
