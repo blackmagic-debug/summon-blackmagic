@@ -329,6 +329,15 @@ class GitHubAPI:
 
 		return None
 
+	# Handle a notificatino from GitHub that a release changed in some way.
+	# NB: Due to a limitation on GitHub's end, we cannot see updates to release assets
+	# being made unless they're accompanied by one of the change types release.edit
+	# is capable of notifying about - body, name, tag_name, and latest release changes.
+	# We really have no good way to deal with this as we don't even get invoked in those
+	# circumstances. This is just generally a problem, but for now we can get away with
+	# ignoring it as we can manually fix things up in the index database, and the frequency
+	# of such changes is very low anyway. Once a release is made, we don't generally go
+	# changing the release assets if we can possibly help it.
 	def processReleaseWebhook(self, db: SQLAlchemy, request: Request, secret: bytes):
 		# Start by seeing if the request data matches the HMAC-SHA256 from the headers
 		reqSignature = request.headers.get('X-Hub-Signature-256')
