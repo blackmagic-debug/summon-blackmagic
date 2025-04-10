@@ -38,36 +38,41 @@ class GitHubAPI:
 
 		# Iterate through all the release descriptors that GitHub has returned
 		for releaseFragment in releaseFragments:
-			# Check and make sure this is an actually published release
-			if releaseFragment['draft']:
-				continue
-
-			# See if the release is already present in the database
-			releaseVersion = releaseFragment['tag_name']
-			release = db.session.scalar(sql.select(Release).where(Release.version == releaseVersion))
-			# If there is one present, we've already cached this one so skip it
-			if release is not None:
-				continue
-
-			# Otherwise, build a new Release object and add it to the database
-			release = Release(releaseVersion)
-			db.session.add(release)
-
-			# Now loop through the release assets
-			for asset in releaseFragment['assets']:
-				# If the asset is a build of BMDA or the firmware, we want to index that
-				name = asset['name']
-				# Firmware ends with .elf, BMDA with .zip and when the asset name does not contain 'source' in the name
-				if name.endswith('.elf') or (name.endswith('.zip') and 'source' not in name):
-					self.indexAsset(db, asset, release)
-
-			# Having built a list of all the assets by probe, go through and make sure the variant names,
-			# file names and friendly names are set appropriately (fixup for full -> common)
-			self.harmoniseDownloadNames(release)
+			# Try to index each one
+			self.indexRelease(db, releaseFragment)
 
 		# Make sure any additions made by this function to the databse stick
 		db.session.commit()
 		return releases
+
+	# Process the details of a specific release and try to index it
+	def indexRelease(self, db: SQLAlchemy, releaseFragment: GitHubRelease):
+		# Check and make sure this is an actually published release
+		if releaseFragment['draft']:
+			return
+
+		# See if the release is already present in the database
+		releaseVersion = releaseFragment['tag_name']
+		release = db.session.scalar(sql.select(Release).where(Release.version == releaseVersion))
+		# If there is one present, we've already cached this one so skip it
+		if release is not None:
+			return
+
+		# Otherwise, build a new Release object and add it to the database
+		release = Release(releaseVersion)
+		db.session.add(release)
+
+		# Now loop through the release assets
+		for asset in releaseFragment['assets']:
+			# If the asset is a build of BMDA or the firmware, we want to index that
+			name = asset['name']
+			# Firmware ends with .elf, BMDA with .zip and when the asset name does not contain 'source' in the name
+			if name.endswith('.elf') or (name.endswith('.zip') and 'source' not in name):
+				self.indexAsset(db, asset, release)
+
+		# Having built a list of all the assets by probe, go through and make sure the variant names,
+		# file names and friendly names are set appropriately (fixup for full -> common)
+		self.harmoniseDownloadNames(release)
 
 	# Process an asset from a release, and turn it into a firmware download in the database
 	def indexAsset(self, db: SQLAlchemy, asset: GitHubAsset, release: Release):
