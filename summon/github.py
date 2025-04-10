@@ -19,20 +19,24 @@ fileNamePrefix = 'blackmagic-'
 # Represents our bindings to the GitHub API as much as we care to have
 class GitHubAPI:
 	# Initialise a connection to the API using the API token from the config
-	def __init__(self, token: str) -> None:
+	def __init__(self, token: str | None) -> None:
 		self.apiToken = token
 		# For now, we conform to the API version from 2022-11-28
 		self.apiVersion = '2022-11-28'
 
 	# Extract a list of current releases off the BMD repo, and update the DB with it
 	def updateReleases(self, db: SQLAlchemy):
+		# If there is an API token to use, make use of it
+		if self.apiToken is not None:
+			headers = {'Authorization': f'Bearer {self.apiToken}'}
+		else:
+			headers = {}
+		headers['X-GitHub-Api-Version'] = self.apiVersion
+
 		# Fire off the request with the API token and version specified
 		response = requests.get(
 			'https://api.github.com/repos/blackmagic-debug/blackmagic/releases',
-			headers = {
-				'Authorization': f'Bearer {self.apiToken}',
-				'X-GitHub-Api-Version': self.apiVersion,
-			}
+			headers = headers
 		)
 		# We expect the response to be encoded as JSON
 		# XXX: Need to deal with the fact this response is pagenated to 30 results per request
