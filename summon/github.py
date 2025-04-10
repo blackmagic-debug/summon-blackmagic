@@ -349,6 +349,19 @@ class GitHubAPI:
 		webhookRequest: GitHubReleaseWebhook | None = request.json
 		assert webhookRequest is not None
 
+		# We care about a few kinds of change, so dispatch accordingly
+		match webhookRequest['action']:
+			# If the release was newly directly created,
+			case 'created' | 'released' | 'prereleased' | 'published':
+				self.indexRelease(db, webhookRequest['release'])
+			# If the release is being edited
+			case 'edited':
+				assert webhookRequest['changes'] is not None
+				self.updateRelease(db, webhookRequest['release'], webhookRequest['changes'])
+			# If the release is being deleted
+			case 'deleted' | 'unpublished':
+				self.unindexRelease(db, webhookRequest['release'])
+
 		# Make sure any changes made in the handling of this notification have stuck
 		db.session.commit()
 		# If all went well, tell the GH server we handled things
