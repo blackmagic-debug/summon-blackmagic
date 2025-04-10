@@ -75,6 +75,17 @@ class GitHubAPI:
 		# file names and friendly names are set appropriately (fixup for full -> common)
 		self.harmoniseDownloadNames(release)
 
+	# Process the removal of a release from the published set
+	def unindexRelease(self, db: SQLAlchemy, releaseFragment: GitHubRelease):
+		# Try to find the release from the database
+		release = db.session.scalar(sql.select(Release).where(Release.version == releaseFragment['tag_name']))
+		# If we could not find one, we're done - nothing to do
+		if release is None:
+			return
+
+		# Otherwise, schedule this release for removal from the database, unindexing it
+		db.session.delete(release)
+
 	# Process an asset from a release, and turn it into a firmware download in the database
 	def indexAsset(self, db: SQLAlchemy, asset: GitHubAsset, release: Release):
 		# Determine if this is firmware or BMDA
