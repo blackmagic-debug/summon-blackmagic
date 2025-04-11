@@ -40,8 +40,16 @@ class ETagCache:
 # Defines the handling for an ETag cached request for JSON
 class ETagJSONHandler:
 	def __init__(self, cache: ETagCache, handler: JSONHandler):
+		# Store the cache instance and handler we're wrapping
 		self.cache = cache
 		self.handler = handler
+
+		# Copy a few properties from the handler function so Flask.route() works right
+		self.__module__ = handler.__module__
+		self.__name__ = handler.__name__
+		self.__qualname__ = handler.__qualname__
+		self.__doc__ = handler.__doc__
+		self.__annotations__ = handler.__annotations__
 
 	# Invoked when this handler is called on for a request
 	def __call__(self):
