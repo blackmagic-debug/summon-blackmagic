@@ -4,6 +4,7 @@ from flask import Flask, render_template, request
 from .models import db
 from .metadata import releasesToJSON
 from .github import GitHubAPI
+from .etag import ETagCache
 
 __all__ = (
 	'app',
@@ -18,6 +19,8 @@ db.init_app(app)
 
 # Create an instance of the GitHub API interactor
 gitHubAPI = GitHubAPI(app.config['GITHUB_API_TOKEN'])
+# Create an instance of the ETag cache
+cache = ETagCache()
 
 # And make sure that all tables are properly defined in the database
 with app.app_context():
@@ -39,6 +42,7 @@ def index():
 
 # Handler for the release downloads metadata using the database index of the releases
 @app.route('/metadata.json')
+@cache.json
 def metadata():
 	# Construct a schema-conforming JSON object from the releases in the database
 	return {
