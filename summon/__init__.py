@@ -66,7 +66,7 @@ def releaseUpdate():
 			return 'Success', 200
 		# For release requests, dispatch to the release webhook handler
 		case 'release':
-			return gitHubAPI.processReleaseWebhook(db, request, app.config['GITHUB_SECRET'].encode('utf8'))
+			return gitHubAPI.processReleaseWebhook(db, request, app.config['GITHUB_SECRET'].encode('utf8'), cache)
 		# For everything else, including None, say we're not here
 		case _:
 			return 'Not Found', 404

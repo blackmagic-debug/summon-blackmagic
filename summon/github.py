@@ -12,6 +12,7 @@ import magic
 from .models import Release, ReleaseProbe, FirmwareDownload, BMDABinary
 from .githubTypes import GitHubRelease, GitHubAsset, GitHubReleaseWebhook, GitHubReleaseChanges
 from .types import Probe, variantFriendlyName, TargetOS, TargetArch
+from .etag import ETagCache
 
 # All valid release files start with this prefix
 fileNamePrefix = 'blackmagic-'
@@ -342,7 +343,7 @@ class GitHubAPI:
 	# ignoring it as we can manually fix things up in the index database, and the frequency
 	# of such changes is very low anyway. Once a release is made, we don't generally go
 	# changing the release assets if we can possibly help it.
-	def processReleaseWebhook(self, db: SQLAlchemy, request: Request, secret: bytes):
+	def processReleaseWebhook(self, db: SQLAlchemy, request: Request, secret: bytes, cache: ETagCache):
 		# Start by seeing if the request data matches the HMAC-SHA256 from the headers
 		reqSignature = request.headers.get('X-Hub-Signature-256')
 		# Validate that the signature has the correct form
@@ -377,5 +378,6 @@ class GitHubAPI:
 
 		# Make sure any changes made in the handling of this notification have stuck
 		db.session.commit()
+		cache.invalidate(handlerName = 'metadata')
 		# If all went well, tell the GH server we handled things
 		return 'Processed', 200

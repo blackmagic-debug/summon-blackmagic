@@ -37,6 +37,17 @@ class ETagCache:
 		self.etagCache[handler] = etag
 		self.responseCache[handler] = response
 
+	# Invalidate a cache entry by handler name
+	def invalidate(self, *, handlerName: str):
+		# Scrub through the cache looking for a handler with a matching name in the cache
+		for key in self.etagCache.keys():
+			# If we've found one, then drop its entries to force a re-cache
+			if key.__name__ == handlerName:
+				del self.etagCache[key]
+				del self.responseCache[key]
+				# And stop so the iteration doesn't get grumpy at us
+				break
+
 # Defines the handling for an ETag cached request for JSON
 class ETagJSONHandler:
 	def __init__(self, cache: ETagCache, handler: JSONHandler):
