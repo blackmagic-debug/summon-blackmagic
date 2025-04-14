@@ -83,5 +83,7 @@ class ETagJSONHandler:
 
 		# Otherwise, we have to build a new one
 		response = jsonify(self.handler())
+		# Mark it cached and enter it into the cache via computing its ETag
+		response.headers['Cache-Control'] = 'max-age=604800, no-cache, public'
 		self.cache.etag(self.handler, response)
 		return response
