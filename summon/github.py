@@ -334,7 +334,7 @@ class GitHubAPI:
 
 		return None
 
-	# Handle a notificatino from GitHub that a release changed in some way.
+	# Handle a notification from GitHub that a release changed in some way.
 	# NB: Due to a limitation on GitHub's end, we cannot see updates to release assets
 	# being made unless they're accompanied by one of the change types release.edit
 	# is capable of notifying about - body, name, tag_name, and latest release changes.
