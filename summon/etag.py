@@ -68,6 +68,9 @@ class ETagJSONHandler:
 		etag = request.headers.get('If-None-Match')
 		# If the request does, look the handler up in the ETag cache and check if they match
 		if etag is not None:
+			# If the etag has been weakened (eg, because nginx did gzip compression), strip the weakening
+			if etag.startswith('W/'):
+				etag = etag[2:]
 			cachedETag = self.cache.lookupETag(self.handler)
 			# If the tags match, tell the client nothing changed
 			if cachedETag == etag:
